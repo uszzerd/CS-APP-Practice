@@ -71,3 +71,46 @@ int tadd_ok(int x, int y)
 // x와 y가 덧셈 후 부호가 sum result와 다르다면 overflow
 // int는 32bit 이므로 31bit shift 시 sign bit를 검출할 수 있음
 
+
+// case 6 (two's complement 가정)
+int tmult_ok(int x, int y)
+{
+    int p = x * y;
+    return !x || p/x == y;
+}
+
+// x != 0 이고 overflow가 없으면, 수학적 곱 P = x*y 가 int 범위에 들어가며
+// p = P 이므로 p/x == y 가 성립한다
+// p ≡ P (mod 2^w)
+// P = p + t*2^w
+// overflow 없음 ⇔ t = 0 ⇔ P = p
+// overflow 있음 ⇔ t ≠ 0
+// x==0이면 p/x가 0으로 나누기가 되므로, overflow도 없으니 바로 OK로 처리
+// longlong 변수를 사용하면 나누기 없이 & 연산자로 검출 가능
+
+// 앞으로 Shift (x << w)시 x * 2^w 연산 진행
+// x * 24 = (x << 5) - (x << 3) 과 같이 shift 연산으로 쉽게 구현 가능
+
+
+// case 7 (Shift로 나눗셈 만들기)
+float div16(int x)
+{
+    return x >> 3;
+}
+// two's complement 나눗셈은 분기가 2개로 나뉜다 (dividend, divisor)
+// C division rule: quotient is truncated toward 0 (division에서의 trunc 정의)
+// q = trunc(x / y);
+
+// 1. sign = sign(x) XOR sign(y)
+// 2. |x| / |y| 로 몫 계산
+// 3. sign 적용
+
+// sign(x) XOR sign(y) -> sign = (x < 0) ^ (y < 0);
+// INT_MIN / -1 일 경우 Overflow가 발생한다. (undefined behavior)
+
+// Truncation이란 일정 부분의 bit를 버리는 것이다
+// 1~21 -> 1~16
+// Sign Extention은 앞의 Sign bit를 처음의 Sign bit와 같은 bit를 앞에 추가하는 것이다.
+// 1...11(16) -> 111...11(20)  == Value 유지
+
+
