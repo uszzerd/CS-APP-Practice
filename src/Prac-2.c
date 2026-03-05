@@ -114,3 +114,43 @@ float div16(int x)
 // 1...11(16) -> 111...11(20)  == Value 유지
 
 
+/*
+IEEE 754 normalized number
+x = (-1)^s x (1.f) x 2^(E)
+
+s = sign bit, 부호
+f = fraction, 실제 사용 값
+E : 1. normalized, 2. denormalized 의 값이 다름
+1. exp != 0...0 -> e-Bais
+2. exp == 0...0 -> 1-Bais
+
+exponent = exp = 소수점(.)을 어디로 이동시킬지 결정하는 값 
+
+exp == 1...1 && frac == 0...0 -> sign bit에 따라 ∞, -∞ 로 나뉨
+exp == 1...1 && frac != 0...0 -> Not a Number, NaN 범위
+
+*/
+
+
+/*
+case 8
+
+A. n비트 비율을 사용하는 어떤 부동소수점 형식에서 정확하게 표시할 수 없는 최소
+양의 정수 값을 식으로 표시하시오. 지수 필드는 k비트이다.
+-> Overflow가 일어나는 최소 정수 값
+
+sign | exponent(k bit) | fraction(n bit)
+sign bit = 1 // 부호 비트로 상관 X
+exponent bit = k // k는 충분히 크다고 가정
+hidden bit = 1 // 실수는 1.xxx로 시작하며 앞 1은 저장하지 않고 implicit하게 가정
+fraction field bit = n
+
+정수 = 2^(n+1), 최대 저장 가능
+-> overflow가 일어나는 양의 정수 2^(n+1) + 1
+
+case 9 
+B. float 형식으로 n = 23일 경우는?
+
+위의 결과에 따라 2^(23+1)+1, 2^24+1 일 경우
+
+*/
