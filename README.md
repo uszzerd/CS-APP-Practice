@@ -18,3 +18,4 @@ IDE : Visual Studio Code
 
 ## 학습 내용
 Part 1. Type, Bit, Floating Point, Round  
+Part 2. Machinne-Level
