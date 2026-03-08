@@ -25,3 +25,16 @@ loop:
     t = (test-expr);
     if (t) 
         goto loop:
+
+
+while :
+while(test-expr)
+    body-statement
+
+    goto test;
+loop:
+    body-statement
+test:
+    t = test-expr;
+    if(t)
+        goto loop;
