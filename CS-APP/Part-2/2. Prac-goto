@@ -8,10 +8,10 @@ if else :
     t = test-expr;
     if (!t)
         goto fales;
-    then-statment
+    then-statement
     goto-done;
 false:
-    else-statment;
+    else-statement;
 done:
 
  
@@ -38,3 +38,50 @@ test:
     t = test-expr;
     if(t)
         goto loop;
+
+
+for :
+for(init-expr; test-expr; update-expr)
+    body-statement 
+
+for로 생성된 문장의 최적화는 while, do-while 로 나뉘어 코드를 생성한다
+
+init-expr
+while (test-expr)
+{
+    body-statement
+    update-expr;
+}
+=>
+    init-expr;
+    goto test;
+loop:
+    body-statement
+    update-expr;
+test:
+    t = test-expr;
+    if (t)
+        goto loop;
+,
+
+    init-expr;
+    t = test-expr;
+    if (!t)
+        goto done
+loop:
+    body-statement
+    update-expr;
+    t = test-expr;
+    if (t)
+        goto loop;
+done:
+
+
+switch : 
+
+goto label;
+
+label:
+    statement;
+
+end:
