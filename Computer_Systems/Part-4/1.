@@ -1,0 +1,112 @@
+Summary
+비싸고 빠른, 작은 메모리와 싸고 느린, 큰 메모리를 계층적(Hierarchy)으로 쌓아 빠른 메모리처럼 보이게 만듦
+-> 프로그램이 완전 랜덤하게 메모리를 사용하지 않고, Locality하게 보이기 때문이다.
+
+1. 왜 Memory Hierarchy가 필요한가?
+CPU가 빠른만큼 DRAM, SSD 등의 속도는 그만큼 빨라지지 않았다.
+이걸 CPU-memory gap으로 설명하는데, CPU의 처리 속도에 비해 Memory를 갖고오는 속도가 느려 자주 기다리고 멈춘다.
+
+이를 해결하기 위해
+1-1. CPU 옆에  매우 빠른 저장장치가 필요하고
+1-2. 전체 데이터는 큰 용량으로도 보관해야 한다
+-> Register, L1,2,3 Cache, Main Memory, Disk, 원격 저장소와 같은 계층 구조가 생긴다.
+
+빠름 / 비쌈 / 작음
+─────────────────
+  Registers       ~0.3ns
+  L1 Cache        ~1ns
+  L2 Cache        ~5ns
+  L3 Cache        ~20ns
+  DRAM (Main)     ~100ns
+  SSD             ~100μs
+  HDD             ~10ms
+─────────────────
+느림 / 쌈 / 큼
+
+
+2. Locality
+locality를 두가지로 나눌 수 있다.
+
+1-1. Temporal locality
+최근 접근한 데이터나 명령어를 가까운 미래에 다시 쓸 가능성이 높다.
+ex) sum += a[i]; 루프를 돌면서 sum 변수는 다시 접근하게 된다
+
+1-2. Spatial locality
+어떤 주소를 접근하면 그 근처 주소들도 곧 접근할 가능성이 높다.
+ex) for(i = 0; i < n; i++) sum += a[i]; 배열을 순서대로 읽으면 i, i+1, i+2 처럼 인접 원소를 읽는다.
+
+최근/근처 데이터만 잘 담아두면 부분의 접근을 빠르게 처리할 수 있다.
+C는 2차원 배열을 행 우선으로 저장하므로 안쪽의 루프가 열이 아닌 행의 연속 원소를 따라가야 spatial locality가 좋아진다
+나쁜 locality ex)
+for (j = 0; j < N; j++)
+   for (i = 0; i < M; i++)
+       sum += a[i][j];
+
+좋은 locality ex)
+for (i = 0; i < M; i++)
+    for (j = 0; j < N; j++)
+        sum += a[i][j];       
+
+
+3. Cache
+cache의 구조
+Cache = S x E x B
+S = 2^s, Set : line들의 묶음
+E = lines per set (associativity), Line : Cache 엔트리 하나
+B = 2^b, Byte Block Offset
+
+s = log2(S)
+b = log2(B)
+t = m - s - b
+
+메모리 주소를 3가지로 분해:
+[ Tag t | Set Index s | Block Offset b ]
+
+s bits = 어느 set에서 찾을지
+b bits = block내 어느 byte인지
+cache miss가 나면 필요한 byte만 가져오는 게 아니라 block 전체를 가져온다.
+offset은 그 block 안에서 원하는 byte를 고르는 역할이다.
+t bits = 이 line이 내가 원하는 데이터인지 (tag)
+
+block: 메모리와 캐시 사이의 전송 단위
+set: 캐시 내부에서 block이 들어갈 수 있는 후보 묶음 (세로열)
+line: set 안의 실제 엔트리 하나 (가로열)
+tag: 이 line이 어떤 메모리 block인지 식별하는 상위 주소 비트
+valid bit: 현재 line이 유효한 데이터인지 표시 (1,0 1bit)
+필요하면 dirty bit: write-back에서 수정 여부 표시, cache는 수정되었지만 Memory에 반영되지 않은 경우 1
+
+Cache 동작 - Hit vs Miss
+1. Set Index에서 set찾기
+2. Set 안에 line들 중 Tag일치하나 탐색
+3. Valid bit 확인
+Tag일치 + valid = 1 -> cache hit
+그 외 -> cache miss, 아래 계층에서 block 전체를 가져와 채움
+
+Compulsory miss - 처음 접근한 데이터라 아직 캐시에 한 번도 들어온 적이 없어 나는 miss
+Capacity miss - Cache 전체 크기가 부족해서 이전에 있던 데이터가 밀려나 생기는 miss
+Conflict miss - Cache 전체 크기가 충분해도 매핑 구조때문에 같은 set/line에 몰려서 생기는 miss
+
+
+Cache 종류
+Direct-mapped - S > 1, E = 1
+각 메모리 block이 정확히 한 set의 한 자리에만 들어갈 수 있다.
+구조가 단순하고 빠르지만, 서로 다른 block이 같은 자리를 놓고 충돌하면 conflict miss가 많이 난다.
+
+E-way set associative - S > 1, E > 1 (2, 4, 8 ...)
+각 block이 특정 set에는 가야 하지만, 그 set 안의 E개 line 중 아무 곳에 들어갈 수 있다.
+현대 CPU의 L1/L2는 흔히 이 방식을 쓴다.
+
+fully associative - S = 1, E = 전체 line 수
+어떤 block이든 캐시의 어디든 들어갈 수 있다.
+충돌은 거의 줄지만, 비교 비용이 커져 일반적인 큰 캐시에는 비싸다.
+
+Cache 교체 정책 (Replacement Policy)
+Set이 꽉 찼을 때 어떤 line을 내보낼지:
+
+LRU (Least Recently Used) — 가장 오래 안 쓴 것 교체 (가장 일반적)
+Random — 랜덤 교체 (구현 단순)
+
+
+Locality → Cache가 효과적으로 동작
+Cache miss → DRAM까지 내려가 → 느림
+좋은 코드 = Cache를 잘 활용하는 코드
