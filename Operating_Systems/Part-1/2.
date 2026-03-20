@@ -1,0 +1,5 @@
+1. Thread : Single unique execution context
+- Program Counter, Registers, Execution Flags, Stack, Memory State
+
+Theard 상태가 CPU regiseter에 올라가 있음 -> 해당 Thread 실행중
+
