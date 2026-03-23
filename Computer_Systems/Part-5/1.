@@ -1,0 +1,222 @@
+1. Linking이란?
+여러개의 코드와 데이터를 모아서 연결하여 executable을 생성한다
+여기서 linker가 반드시 하는 두 가지가 있다.
+- Symbol Resolution
+- Relocation
+이 두가지를 이해하기 위한 Part 이다.
+
+Linking의 핵심은 프로그램이 처음부터 하나의 완성된 덩어리가 아니라, 여러 조각으로 나뉘어 생성되고,
+linker가 그 조각들을 결합해 최종 실행 가능한 형태로 만드는 것이다.
+
+각 소스 파일이 따로 번역되고
+라이브러리 코드도 따로 존재하고
+아직 주소가 확정되지 않은 참조들이 남아 있고
+그것들을 linker가 정리해서
+실행 가능한 메모리 이미지에 가까운 형태로 만든 뒤
+OS loader가 메모리에 올린다.
+
+
+2. 프로그램이 실행 파일이 되기 까지
+-Preprocessing  .i 형식의 파일로 소스 코드를 확장/정리함
+-Compilation   .s 코드를 어셈블리 코드로 변환, 각 source file을 독립적으로 처리
+-Assembly       .s -> .o Relocation object file, 아직 최종 메모리 주소가 확정되지 않았기 때문
+-Linking        .o 를 모아 실행 파일을 만든다.
+
+
+3. Object File?
+source -> executable을 바로 하지 않는 이유는 크게 세 가지이다.
+-Separate Compilation
+큰 프로젝트는 무언가 수정했을 때 통째로 다시 컴파일 하면 비효율적임
+ex) a.c b.c c.c 가 있을 때 a.c만 수정했다면 a.o로 다시 컴파일 하고 b.o, c.o를 활용하여 linker가 합치면 효율적임
+
+-Module
+프로그램을 기능 단위로 나눌 수 있다
+문자열 처리, 네트워크, 렌더링 등등 각각 독립적으로 구현, 컴파일 하고 마지막에 묶는다.
+
+-Reuse the Library
+표준, 외부 라이브러리를 매번 소스 수준에서 다시 만들면 비효율적이다.
+이미 만들어진 object code를 가져와 link하면 되는데, 미리 컴파일된 .o 파일을 사용하면 된다.
+
+
+4. Linking 예시
+/* main.c */
+int sum(int *a, int n);
+
+int main() {
+    int arr[3] = {1, 2, 3};
+    return sum(arr, 3);
+}
+
+/* sum.c */
+int sum(int *a, int n) {
+    int i, s = 0;
+    for (i = 0; i < n; i++)
+        s += a[i];
+    return s;
+}
+
+이 코드를 보면 system 입장에서 보면
+- main.c는 sum을 호출함
+- sum.c는 sum을 정의함
+컴파일러가 main.c를 번역할 때 sum의 실제 기계어 주소를 알 수 없음 -> sum 함수는 다른 파일에 있기 때문
+
+대략 main.o에는 여기서 sum을 호출, 정확한 주소는 나중에 linker가 채워 넣어야 한다.
+그리고 sum.o는 sum의 정의는 여기에 있다.
+
+라는 정보가 들어가게된다.
+linker는 이 둘을 reference, definition이라 칭하고
+main.o sum = reference
+sum.o  sum = definition
+으로 연결하게 된다.
+
+이것을 Symbol Resolution이라 한다.
+
+
+5. Symbol이란 무엇인가?
+Symbol = 이름이 붙은 프로그램 Entity
+function, static variable, extern 등 모두 Symbol이 될 수 있다.
+
+definition : int g = 10; , int f() {return 0};
+reference : extern int g; , int f();
+
+Local, Global, External Symbol로 나눌 수 있다.
+
+-Local Symbol
+해당 object file 안에서만 의미가 있는 것
+static int x = 3;
+
+-Global Symbol
+다른 파일에서도 볼 수 있는 정의
+int x = 3;
+int f() {return 0;}
+
+-External Symbol
+현재 파일에는 정의가 없지만 다른 곳에서 찾을 것으로 기대하는 Symbol
+extern int x;
+int f();
+
+
+6. Symbol Resolution
+각 object file은 자신이 갖고 있는 것과 필요한 것을 일부만 알고 있다.
+예를 들어 main.o는 : main 정의 있음, sum 필요함
+sum.o는 : sum 정의 있음
+
+linker는 전체 object를 모은 뒤 각 undefined symbol reference에 대해 정확한 definition을 찾는다.
+-> 컴파일러는 파일단위로 일을 하기에 컴파일 단계에서 reference에 대해 나중에 필요하다는 정보만 남기게 된다
+
+definition은 reference가 없어도 정상 동작을 하지만 reference는 definition이 필요하다.
+undefined reference to sum 과 같은 error가 발생할 수 있다.
+-> 해당 error는 link error이다.
+
+
+7. Relocation
+.o file 안의 코드와 데이터는 아직 최종 주소가 없다.
+
+이전 예시의 main.o의 main 함수가 최종 실행 파일에서 어디에 놓일지 아직 모른다.
+또한 main안 sum을 호출하는 instruction도 최종 주소가 정해지기 전까지 완전히 확정할 수 없다.
+
+즉
+- 누구를 부를지는 알 수 있다. (Symbol Resolution)
+- 그 대상이 정확히 어느 주소인지 최종 배치 후 알 수 있다. (Relocation)
+
+Relocation이란 object file의 코드를 최종 주소 공간에 배치하고 그에 맞게 참조를 고치는 것이다.
+
+linker :
+- 각 section을 어디에 둘지 결정
+- 각 symbol의 최종 주소 계산
+- 그 주소를 참조하는 instruction/data를 수정
+
+예를 들어 main.o의 어떤 명령이 “sum으로 점프”를 의미한다고 가정
+하지만 .o 상태에서는 sum의 최종 주소를 모른다.
+
+링커가 최종 배치를 결정한 뒤:
+sum이 0x401120에 있다
+현재 call instruction이 0x401050에 있다
+
+이런 계산을 하고, instruction의 immediate 값이나 relative offset을 고치게 된다.
+
+이 과정을 relocation entry를 보고 수행해야한다.
+즉 object file에는 여기 이 바이트들은 나중에 sum 주소 기준으로 수정해야 함 이라는 메타정보가 들어 있다.
+
+
+8. Object File
+CSAPP에서는 ELF 형식을 예시로 object file 구조를 설명한다.
+
+-Read-only memory segment (code segment)
+-Read/write memory segment (data segment)
+-Symbol table and debugging infom are not loaded into memory
+
+.text컴파일된 기계어 코드
+.data초기화된 전역/정적 변수
+.bss초기화되지 않은 전역/정적 변수 (실제 공간 차지 안 함)
+.symtabSymbol table
+.rel.textRelocation entry (코드용)
+
+
+9. Static Library
+.a 파일로 여러 object file을 묶어놓은 아카이브이다.
+ex) libfoo.a 에는 a.o, b.o, c.o 같은 여러 object file이 들어있다.
+
+해당 .o 파일들을 전부 직접 사용하지 않아도 라이브러리 하나로 관리할 수 있다.
+그리고 linker는 보통 라이브러리 전체를 다 넣지 않는다. 현재 필요한 unresolved symbols를 해결하기 위한 object file만 선택적으로 꺼내 사용한다.
+즉 static library는 큰 object file 집합이지만 필요한 부품만 골라 사용하게 된다.
+
+link 순서가 중요한데, 정적 라이브러리는 왼쪽에서 오른쪽으로 처리되는 unresolved symbol 흐름을 갖고있다.
+틀린 순서
+gcc -lsum main.o
+올바른 순서
+gcc main.o -lsum
+
+
+10. Strong, Weak Symbol
+strong symbol : 함수 정의나 초기화된 전역 변수
+int x = 5; int f() {return 0;}
+
+weak : 초기화되지 않은 전역 변수
+int x;
+
+링커는 같은 이름의 심볼이 여러 개 있을 때 대체로 다음 규칙을 따른다.
+-strong이 둘 이상이면 에러
+-strong 하나와 weak 여러 개면 strong 선택
+-weak만 여러 개면 하나를 선택
+
+만약 두 파일에 int x; 와 같은 x변수가 둘 다 존재한다면 link가 이름을 보고 합쳐버릴 수 있다.
+
+
+11. Executable이 만들어진 이 후 
+-compiler: 소스 → object
+-linker: object → executable
+-loader: executable → process memory image
+
+즉 링커가 만든 실행 파일은 실행 중인 프로세스가 아니다.
+
+운영체제가 이 파일을 읽고:
+-코드 섹션을 메모리에 올리고
+-데이터 영역을 만들고
+-bss를 0으로 초기화하고
+-entry point로 점프
+
+해야 실제 실행이 시작된다.
+-> Linking은 컴파일과 실행 사이를 연결하는 단계
+
+
+12. Dynamic Linking
+지금까지의 설명은 static linking에 가깝다.
+
+동적 링크의 핵심 아이디어는 '링크 작업의 일부를 실행 시점으로 미룬다'는 것이다.
+-> 실행 파일 안에 라이브러리 코드 전체를 넣지 않는다.
+-vector library가 필요함
+-해당 symbol은 sum.o 에서 찾을것
+과 같은 정보만 남기게 된다.
+
+즉 링크의 일부가 load-time으로 넘어가게 된다.
+dlopen, dlsym 같은 방식은 프로그램 실행 도중 직접 라이브러리를 여는것으로 run-time까지 링크를 미루게된다.
+
+
+13. 정리
+- 프로그램은 한 번에 만들어지지 않는다, 여러 seperate complie 후 마지막에 link된다.
+- linking은 단순 결합이 아니다. 이름 해석(symbol resolution), 주소 보정(relocation)이 필요하다.
+- static, library, extern같은 C 개념은 문법 문제가 아닌 link model과 직접 연결된 시스템 개념이다.
+- 실행 파일은 최종 코드 텍스트가 아니라 OS가 프로세스로 적재할 수 있는 구조화된 산출물이다.
+
+

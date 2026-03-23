@@ -21,6 +21,7 @@ Part 1. Information
 Part 2. Machine-Level
 Part 3. Optimizing Program
 Part 4. Memory Hierarchy
+Part 5. Linking
 
 
 Ai-generated folder는 Ai를 통해 문제를 만들고 풀어본 것 입니다.
