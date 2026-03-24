@@ -1,0 +1,43 @@
+1. secret_calc
+
+401156 <secret_operation>
+계산 과정 이후는 
+cmp $0x1337,%rax
+je 40122a <main+0xab>
+    
+fst = rax
+rax-rdi
+rax-rsi
+rax+=(rdx+8)
+rdx=rax
+
+xor dead rdx
+if (rax > 0x64) rax = rdx
+목표값 0x1337 xor 0xDEAD계산 결과 CD9A를 rax를 갖고있게 해야함
+
+rax = fst * 8 - fst - sec + thd * 8
+if(rax == 0xCD9A) flag
+else printf("Result: %d (expected 0x1337)", &rax)
+
+로 예상됨
+rsi를 8bit씩 건너뛰니 int형 변수인듯하다
+Correct! Flag: RE{b4s1c_4r1thm3t1c_7518_0_1}
+
+void main(int argc, char **argv)
+{
+    if(argc != 4)
+    {
+        printf("Usage: ./secret_calc <a> <b> <c>");
+        return;
+    }
+    
+    int fst = atoi(argv[1]);
+    int sec = atoi(argv[2]);
+    int thd = atoi(argv[3]);
+
+    int Result = fst * 7 - sec + thd * 8;
+    if((Result ^ 0xDEAD) == 0x1337) { printf("Correct! Flag: RE{b4s1c_4r1thm3t1c_7518_0_1}"); }
+    else { printf("Result: %d (expected 0x1337)", Result); }
+
+    return;
+}
